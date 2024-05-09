@@ -1,5 +1,6 @@
 import numpy as np
 import random as rand
+import matplotlib.pyplot as plt
 import math
 
 
@@ -22,9 +23,7 @@ def readFromFile(path):
         # Return the 2D array
         return normalized_array
     
-
-        
-            
+         
 def createData(numHidden, file):
         lettersArray = np.array(readFromFile(file))
         
@@ -39,7 +38,6 @@ def createData(numHidden, file):
     
     
 class ANNUtils:
-    
     
     def __init__(self, WeightMatrix, BiasMatrix, NodeVals, ZVals):
         self.WeightMatrix = WeightMatrix
@@ -64,9 +62,6 @@ class ANNUtils:
     def calculateBias(Cost, Z):
         return ANNUtils.derivSigmoid(Z)*Cost
     
-    
-
-
     #Length of row = # of neurons in the input layer
     #Length of col = # of neurons in hidden layer
     #Sum of each input node -> 1 hiddenLayer node
@@ -80,18 +75,11 @@ class ANNUtils:
                 np.append(expected, 1)
             else:
                 np.append(expected,0)
-            
-            
     
     def forwardPropogateLayer(self, nextLayer):
-        #for i in range(0,len(nextLayer.BiasMatrix)):
-        # print("Shape of Nodevals:", self.NodeVals.shape)
-        # print("Shape of nexLayer:", nextLayer.WeightMatrix.shape)
 
         ZVals = np.dot(self.NodeVals.reshape(1, -1), nextLayer.WeightMatrix) 
-        
-        # print("Shape of Bias:", nextLayer.BiasMatrix.shape)
-        # print("Shape of ZVals:", ZVals.shape)
+
         ZVals += nextLayer.BiasMatrix
         
         ZVals = ZVals.squeeze()
@@ -155,6 +143,8 @@ def test(file, inputLayer, hiddenLayer, outputLayer, correctValues, debug):
     inputData = np.array(readFromFile(file))
     
     idealArr = np.tile(np.eye(7), (3, 1))[:21]
+    correct = 0
+    incorrect = 0
     
     for i in range(len(inputData)):
         inputLayer.NodeVals = inputData[i]
@@ -170,16 +160,20 @@ def test(file, inputLayer, hiddenLayer, outputLayer, correctValues, debug):
             
         hiddenLayer.forwardPropogateLayer(outputLayer)
         
-        
-        
         ideal_index = np.argmax(idealArr[i])
 
         output_index = np.argmax(outputLayer.NodeVals)
-
+        
         if ideal_index == output_index:
-            print(correctValues[i], "is correct!")
+            correct += 1
+            if debug == "resultsDetailed":
+                print(correctValues[output_index], "is correct!")
         else:
-            print(correctValues[i], "is incorrect!")
+            incorrect += 1
+            if debug == "resultsDetailed":
+                print(correctValues[output_index], "is incorrect!")
+    
+        
         
         if debug == 1:
             #format(outputLayer.ZVals)
@@ -191,8 +185,12 @@ def test(file, inputLayer, hiddenLayer, outputLayer, correctValues, debug):
         inputLayer.ZVals = np.array([])
         hiddenLayer.ZVals = np.array([])
         outputLayer.ZVals = np.array([])
-            
         
+    accPerc = correct/(correct + incorrect) * 100
+    print("Accuracy = ", accPerc,"%") 
+    return accPerc
+    
+             
 def format(Array):
     for i in range(len(Array)):
         print("I =" , i, Array[i])
@@ -206,14 +204,25 @@ def checkArray(Array):
         else:
             print(Array[i])
      
-            
 
 def main():
     #Number of nodes in the hidden
     #Returns the initial weight matrix and Bias matrix
-    inputData, W1, W2, B1, B2 = createData(60, "C:\\Users\\nickd\\Downloads\\HW3_Training.txt")
- 
+    trainingFile = "C:\\Users\\nickd\\Downloads\\HW3_Training.txt"
+    testingFile = "C:\\Users\\nickd\\Downloads\\HW3_Testing.txt"
     
+    epochs = 11
+    hiddenLayerNodes = 100
+    learningRate = .3
+    
+    #Debug options
+    # 0: Just accuracy percentage
+    # 1:  to print before after training/testing
+    # resultsDetailed: prints results for each value then the accuracy
+    debug = "resultsDetailed"
+            
+    inputData, W1, W2, B1, B2 = createData(hiddenLayerNodes, trainingFile)
+
     inputLayer = ANNUtils(WeightMatrix=np.array([]), BiasMatrix=np.array([]), NodeVals=np.array([]), ZVals=np.array([]))
 
     hiddenLayer = ANNUtils(WeightMatrix=W1, BiasMatrix=B1, NodeVals=np.array([]), ZVals=np.array([]))
@@ -221,17 +230,12 @@ def main():
     outputLayer = ANNUtils(WeightMatrix=W2, BiasMatrix=B2, NodeVals=np.array([]), ZVals=np.array([]))
     
     correctValues = np.array(["A","B","C","D","E","J","K","A","B","C","D","E","J","K","A","B","C","D","E","J","K"])
-    
-    
-    
-    
-    for i in range(0,10):
-        train(inputData, inputLayer, hiddenLayer, outputLayer, correctValues,.3, 0)
-    
-    #(file, inputLayer, hiddenLayer, outputLayer, correctValues, debug)
-    
-    test("C:\\Users\\nickd\\Downloads\\HW3_Testing.txt", inputLayer, hiddenLayer, outputLayer, correctValues, 0)
-    
 
+    
+    for i in range(0,epochs):
+        train(inputData, inputLayer, hiddenLayer, outputLayer, correctValues,learningRate, 0)
+        
+    #(file, inputLayer, hiddenLayer, outputLayer, correctValues, debug)
+    accuracy = test(testingFile, inputLayer, hiddenLayer, outputLayer, correctValues, debug)
     
 main()
